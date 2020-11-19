@@ -451,7 +451,9 @@ def _footer_logo_img(is_secure):
     Returns:
         Absolute url to logo
     """
-    logo_name = configuration_helpers.get_value('FOOTER_ORGANIZATION_IMAGE', settings.FOOTER_ORGANIZATION_IMAGE)
+    default_local_path = 'images/logo.png'
+    footer_image_url = settings.LOGO_TRADEMARK_URL
+    footer_logo_path = configuration_helpers.get_value('FOOTER_ORGANIZATION_IMAGE', settings.FOOTER_ORGANIZATION_IMAGE)
     # `logo_name` is looked up from the configuration,
     # which falls back on the Django settings, which loads it from
     # `lms.yml`, which is created and managed by Ansible. Because of
@@ -462,24 +464,21 @@ def _footer_logo_img(is_secure):
     # logo by default, so that it can display properly on edx.org -- both
     # within the LMS, and on the Drupal marketing site, which uses this API.
     try:
-        return _absolute_url_staticfile(is_secure, logo_name)
+        return _absolute_url_staticfile(is_secure, footer_logo_path)
     except ValueError:
-        # However, if the edx.org comprehensive theme is not activated,
-        # Django's staticfiles system will be unable to find this footer,
-        # and will throw a ValueError. Since the edx.org comprehensive theme
-        # is not activated by default, we will end up entering this block
-        # of code on new Open edX installations, and on sandbox installations.
-        # We can log when this happens:
-        default_logo = "images/logo.png"
         log.info(
-            u"Failed to find footer logo at '%s', using '%s' instead",
-            logo_name,
-            default_logo,
+            "Failed to find footer logo at '%s', using '%s' instead",
+            footer_logo_path,
+            default_local_path,
         )
-        # And we'll use the default logo path of "images/logo.png" instead.
-        # There is a core asset that corresponds to this logo, so this should
-        # always succeed.
-        return staticfiles_storage.url(default_logo)
+
+    if footer_image_url:
+        return footer_image_url
+
+    # And we'll use the default logo path of "images/logo.png" instead.
+    # There is a core asset that corresponds to this logo, so this should
+    # always succeed.
+    return staticfiles_storage.url(default_local_path)
 
 
 def _absolute_url(is_secure, url_path):
@@ -569,22 +568,43 @@ def get_logo_url(is_secure=True):
         is_secure (bool): If true, use HTTPS as the protocol.
     """
 
-    # if the configuration has an overide value for the logo_image_url
+    # if the configuration has an override value for the logo_image_url
     # let's use that
-    image_url = configuration_helpers.get_value('logo_image_url')
-    if image_url:
-        return _absolute_url_staticfile(
-            is_secure=is_secure,
-            name=image_url,
-        )
+    logo_url = settings.LOGO_URL
+    default_local_path = 'images/logo.png'
+    logo_image_path = configuration_helpers.get_value('logo_image_url')
+
+    if logo_image_path:
+        return _absolute_url_staticfile(is_secure=is_secure, name=logo_image_path)
 
     # otherwise, use the legacy means to configure this
     university = configuration_helpers.get_value('university')
-
     if university:
         return staticfiles_storage.url('images/{uni}-on-edx-logo.png'.format(uni=university))
-    else:
-        return staticfiles_storage.url('images/logo.png')
+
+    if logo_url:
+        return logo_url
+
+    return staticfiles_storage.url(default_local_path)
+
+
+def get_favicon_url(default=None):
+    """
+    Notes -- to be replaced with docstring.
+    1. Try to get path from config (favicon_path)
+    2. Return favicon_url if set in settings.
+    3. return local favicon from localstorage images/favicon.ico
+    """
+    favicon_url = settings.FAVICON_URL
+    default_local_path = 'images/favicon.ico'
+    favicon_path = configuration_helpers.get_value('favicon_path', default)
+    if favicon_path:
+        return staticfiles_storage.url(favicon_path)
+
+    if favicon_url:
+        return favicon_url
+
+    return staticfiles_storage.url(default_local_path)
 
 
 def get_tos_and_honor_code_url():
