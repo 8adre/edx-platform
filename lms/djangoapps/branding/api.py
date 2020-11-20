@@ -588,7 +588,7 @@ def get_logo_url(is_secure=True):
     return staticfiles_storage.url(default_local_path)
 
 
-def get_favicon_url(default=None):
+def get_favicon_url():
     """
     Notes -- to be replaced with docstring.
     1. Try to get path from config (favicon_path)
@@ -596,8 +596,8 @@ def get_favicon_url(default=None):
     3. return local favicon from localstorage images/favicon.ico
     """
     favicon_url = settings.FAVICON_URL
-    default_local_path = 'images/favicon.ico'
-    favicon_path = configuration_helpers.get_value('favicon_path', default)
+    default_local_path = settings.FAVICON_PATH
+    favicon_path = configuration_helpers.get_value('favicon_path')
     if favicon_path:
         return staticfiles_storage.url(favicon_path)
 
